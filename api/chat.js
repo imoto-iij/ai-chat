@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { isAuthEnabled, checkAuth } from "./lib/auth.js";
 
 const SYSTEM_PROMPT = `あなたは親切で知識豊富なAIアシスタントです。
 ユーザーの質問に対して、わかりやすく丁寧に回答してください。
@@ -20,6 +21,15 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
+  }
+
+  // 認証チェック
+  if (isAuthEnabled()) {
+    const { authenticated } = checkAuth(req);
+    if (!authenticated) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
   }
 
   // APIキーの確認
