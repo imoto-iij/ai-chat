@@ -1,0 +1,72 @@
+name: Test AI Chat Application
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start server
+        run: |
+          npm start &
+          sleep 5
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          PORT: 8080
+
+      - name: Test API endpoint
+        run: |
+          echo "Testing API endpoint..."
+
+          # ヘルスチェック（静的ファイル）
+          echo "1. Testing static file serving..."
+          curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ | grep -q "200" && echo "✓ Static files OK" || (echo "✗ Static files failed" && exit 1)
+
+          # APIエンドポイントのテスト
+          echo "2. Testing chat API..."
+          RESPONSE=$(curl -s -X POST http://localhost:8080/api/chat \
+            -H "Content-Type: application/json" \
+            -d '{"messages":[{"role":"user","content":"Hello, respond with just OK"}]}')
+
+          echo "API Response: $RESPONSE"
+
+          # レスポンスにdeltaまたはdoneが含まれているか確認
+          if echo "$RESPONSE" | grep -q "delta\|done"; then
+            echo "✓ Chat API OK"
+          else
+            echo "✗ Chat API failed"
+            exit 1
+          fi
+
+          echo ""
+          echo "All tests passed!"
+
+      - name: Test Summary
+        run: |
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Static file serving: OK" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Chat API endpoint: OK" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Application is working correctly!" >> $GITHUB_STEP_SUMMARY
