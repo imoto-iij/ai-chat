@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.vercel
+.git
+.gitignore
+Dockerfile
+.dockerignore
+CLAUDE.md
+*.md

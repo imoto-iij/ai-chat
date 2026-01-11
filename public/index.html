@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- サイドバー -->
+    <aside class="sidebar">
+      <button class="new-chat-btn" id="newChatBtn">
+        <span class="icon">+</span>
+        新しいチャット
+      </button>
+      <div class="chat-list" id="chatList">
+        <!-- 会話履歴がここに表示される -->
+      </div>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <main class="main">
+      <!-- チャットメッセージエリア -->
+      <div class="chat-container" id="chatContainer">
+        <div class="welcome-message" id="welcomeMessage">
+          <h1>AI Chat</h1>
+          <p>何でも聞いてください。お手伝いします。</p>
+        </div>
+        <div class="messages" id="messages">
+          <!-- メッセージがここに表示される -->
+        </div>
+      </div>
+
+      <!-- 入力エリア -->
+      <div class="input-area">
+        <form class="input-form" id="inputForm">
+          <textarea
+            class="input-field"
+            id="inputField"
+            placeholder="メッセージを入力..."
+            rows="1"
+          ></textarea>
+          <button type="submit" class="send-btn" id="sendBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13M22 2L15 22L11 13M11 13L2 9L22 2"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <!-- モバイル用サイドバートグル -->
+  <button class="sidebar-toggle" id="sidebarToggle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 12h18M3 6h18M3 18h18"/>
+    </svg>
+  </button>
+
+  <script src="script.js"></script>
+</body>
+</html>
