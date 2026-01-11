@@ -16,6 +16,9 @@ const PORT = process.env.PORT || 8080;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 const AUTH_ENABLED = process.env.AUTH_ENABLED !== "false"; // デフォルトで認証有効
+const ALLOWED_EMAILS = process.env.ALLOWED_EMAILS
+  ? process.env.ALLOWED_EMAILS.split(",").map((e) => e.trim().toLowerCase())
+  : []; // 空の場合は全員許可
 
 const oauth2Client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -101,6 +104,17 @@ app.post("/api/auth/google", async (req, res) => {
     });
 
     const payload = ticket.getPayload();
+
+    // 許可されたメールアドレスかチェック
+    if (ALLOWED_EMAILS.length > 0) {
+      const userEmail = payload.email.toLowerCase();
+      if (!ALLOWED_EMAILS.includes(userEmail)) {
+        return res.status(403).json({
+          error: "Access denied",
+          message: "このメールアドレスはアクセスが許可されていません",
+        });
+      }
+    }
 
     // JWTトークンを生成
     const token = jwt.sign(
