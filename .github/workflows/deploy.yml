@@ -43,6 +43,9 @@ jobs:
           source: .
           env_vars: |
             GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            AUTH_ENABLED=true
 
       - name: Show Service URL
         run: |

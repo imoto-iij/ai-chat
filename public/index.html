@@ -5,11 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Chat</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <div class="app">
+  <!-- ログイン画面 -->
+  <div class="login-container" id="loginContainer">
+    <div class="login-box">
+      <h1>AI Chat</h1>
+      <p>続けるにはGoogleアカウントでログインしてください</p>
+      <div id="googleSignInButton"></div>
+    </div>
+  </div>
+
+  <div class="app" id="app" style="display: none;">
     <!-- サイドバー -->
     <aside class="sidebar">
+      <!-- ユーザー情報 -->
+      <div class="user-info" id="userInfo">
+        <img class="user-avatar" id="userAvatar" src="" alt="User Avatar">
+        <div class="user-details">
+          <span class="user-name" id="userName"></span>
+          <span class="user-email" id="userEmail"></span>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="ログアウト">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </div>
+
       <button class="new-chat-btn" id="newChatBtn">
         <span class="icon">+</span>
         新しいチャット

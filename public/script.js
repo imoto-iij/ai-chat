@@ -1,4 +1,6 @@
 // DOM要素の取得
+const loginContainer = document.getElementById("loginContainer");
+const appContainer = document.getElementById("app");
 const chatList = document.getElementById("chatList");
 const chatContainer = document.getElementById("chatContainer");
 const messagesContainer = document.getElementById("messages");
@@ -9,21 +11,155 @@ const sendBtn = document.getElementById("sendBtn");
 const newChatBtn = document.getElementById("newChatBtn");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const sidebar = document.querySelector(".sidebar");
+const userAvatar = document.getElementById("userAvatar");
+const userName = document.getElementById("userName");
+const userEmail = document.getElementById("userEmail");
+const logoutBtn = document.getElementById("logoutBtn");
 
 // 状態管理
 let conversations = [];
 let currentConversationId = null;
 let isGenerating = false;
+let currentUser = null;
+let authConfig = null;
 
 // ローカルストレージのキー
 const STORAGE_KEY = "ai-chat-conversations";
 
 // 初期化
-function init() {
+async function init() {
+  await checkAuthStatus();
+}
+
+// 認証設定を取得
+async function fetchAuthConfig() {
+  try {
+    const response = await fetch("/api/auth/config");
+    authConfig = await response.json();
+    return authConfig;
+  } catch (error) {
+    console.error("Failed to fetch auth config:", error);
+    return null;
+  }
+}
+
+// 認証状態を確認
+async function checkAuthStatus() {
+  try {
+    // 認証設定を取得
+    await fetchAuthConfig();
+
+    const response = await fetch("/api/auth/status");
+    const data = await response.json();
+
+    if (!data.authEnabled) {
+      // 認証が無効の場合は直接アプリを表示
+      showApp();
+      return;
+    }
+
+    if (data.authenticated) {
+      currentUser = data.user;
+      showApp();
+    } else {
+      showLogin();
+    }
+  } catch (error) {
+    console.error("Auth status check failed:", error);
+    showLogin();
+  }
+}
+
+// ログイン画面を表示
+function showLogin() {
+  loginContainer.classList.remove("hidden");
+  loginContainer.style.display = "flex";
+  appContainer.style.display = "none";
+
+  // Google Sign-In ボタンを初期化
+  if (authConfig && authConfig.clientId) {
+    initializeGoogleSignIn();
+  }
+}
+
+// アプリ画面を表示
+function showApp() {
+  loginContainer.classList.add("hidden");
+  loginContainer.style.display = "none";
+  appContainer.style.display = "flex";
+
+  // ユーザー情報を表示
+  if (currentUser) {
+    userAvatar.src = currentUser.picture || "https://via.placeholder.com/36";
+    userName.textContent = currentUser.name || "";
+    userEmail.textContent = currentUser.email || "";
+  }
+
   loadConversations();
   renderChatList();
   setupEventListeners();
   autoResizeTextarea();
+}
+
+// Google Sign-Inの初期化
+function initializeGoogleSignIn() {
+  if (typeof google === "undefined" || !google.accounts) {
+    // Google Identity Services がまだ読み込まれていない場合は待機
+    setTimeout(initializeGoogleSignIn, 100);
+    return;
+  }
+
+  google.accounts.id.initialize({
+    client_id: authConfig.clientId,
+    callback: handleGoogleCallback,
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById("googleSignInButton"),
+    {
+      theme: "outline",
+      size: "large",
+      text: "signin_with",
+      shape: "rectangular",
+      width: 280,
+    }
+  );
+}
+
+// Google認証コールバック
+async function handleGoogleCallback(response) {
+  try {
+    const res = await fetch("/api/auth/google", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ credential: response.credential }),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      currentUser = data.user;
+      showApp();
+    } else {
+      alert("ログインに失敗しました: " + (data.error || "Unknown error"));
+    }
+  } catch (error) {
+    console.error("Google auth error:", error);
+    alert("ログインに失敗しました");
+  }
+}
+
+// ログアウト
+async function handleLogout() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+    currentUser = null;
+    showLogin();
+  } catch (error) {
+    console.error("Logout error:", error);
+  }
 }
 
 // イベントリスナーの設定
@@ -31,6 +167,7 @@ function setupEventListeners() {
   inputForm.addEventListener("submit", handleSubmit);
   newChatBtn.addEventListener("click", createNewConversation);
   sidebarToggle.addEventListener("click", toggleSidebar);
+  logoutBtn.addEventListener("click", handleLogout);
 
   // テキストエリアの自動リサイズ
   inputField.addEventListener("input", autoResizeTextarea);
@@ -254,6 +391,13 @@ async function handleSubmit(e) {
     await streamResponse(messagesToSend, assistantMessageEl);
   } catch (error) {
     console.error("Error:", error);
+
+    // 認証エラーの場合はログイン画面に戻る
+    if (error.message === "Authentication required") {
+      showLogin();
+      return;
+    }
+
     updateLastAssistantMessage("エラーが発生しました。もう一度お試しください。");
     renderMessages();
   } finally {
@@ -291,6 +435,10 @@ async function streamResponse(messages, messageEl) {
     },
     body: JSON.stringify({ messages }),
   });
+
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
